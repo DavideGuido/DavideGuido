@@ -1,0 +1,1578 @@
+rm(list=ls())
+
+library(drc)
+library(devtools)
+library(multcomp)
+library(mclust)
+library(bcp)
+library(strucchange)
+library(segmented)
+library(changepoint)
+library(dplyr)
+library(lm.br)
+
+
+
+extract<-function(dati){
+
+q1_af<-NULL
+q2_af<-NULL
+q3_af<-NULL
+
+
+b0_lm<-NULL
+b1_lm<-NULL
+
+b_drm<-NULL
+c_drm<-NULL
+d_drm<-NULL
+e_drm<-NULL #ED50
+hazard_drm<-NULL
+
+min_af_s<-NULL
+max_af_s<-NULL
+min_nanosecond<-NULL
+max_nanosecond<-NULL
+
+thr_ns<-NULL
+thr_af_s<-NULL
+
+thr_ns_br<-NULL
+thr_af_s_br<-NULL
+
+
+lm_b0_p<-NULL
+lm_b1_p<-NULL
+F_p<-NULL
+drm_b_p<-NULL
+drm_c_p<-NULL
+drm_d_p<-NULL
+drm_e_p<-NULL
+
+f_stats_p<-NULL
+
+bp.score_values_list<-list() 
+bp.score_values_af_list<-list()
+
+bau<-unique(dati$E.C.)
+
+for (i in 1:length(bau)){
+dadi<-dati[dati$E.C.==bau[i],]
+
+m0<-lm(score ~ ns,data = dadi)
+#summary(m0)
+#coef(m0)
+
+lm_b0_p<-c(lm_b0_p,summary(m0)$coefficients[1,4])
+lm_b1_p<-c(lm_b1_p,summary(m0)$coefficients[2,4])
+
+
+b0_lm<-c(b0_lm,coef(m0)[1])
+b1_lm<-c(b1_lm,coef(m0)[2])
+
+library(drc)
+library(devtools)
+library(multcomp)
+library(mclust)
+#library(sandwich)
+#library(lmtest)
+#library(metafor)
+#library(plyr)
+
+wt_ba.LL.4 <- drm(score ~ ns,
+data = dadi,
+fct = LL.4())
+#summary(wt_ba.LL.4)
+#predict(wt_ba.LL.4)
+#coef(wt_ba.LL.4)
+
+
+#pagina 18 del pdf del libro
+b_drm<-c(b_drm,coef(wt_ba.LL.4)[1]) #pag.178 del pdf: The slope parameter b reflects the steepness of the dose-response curve at the dose ED50
+c_drm<-c(c_drm,coef(wt_ba.LL.4)[2])
+d_drm<-c(d_drm,coef(wt_ba.LL.4)[3])
+e_drm<-c(e_drm,coef(wt_ba.LL.4)[4])
+
+drm_b_p<-c(drm_b_p,summary(wt_ba.LL.4)$coefficients[1,4])
+drm_c_p<-c(drm_c_p,summary(wt_ba.LL.4)$coefficients[2,4])
+drm_d_p<-c(drm_d_p,summary(wt_ba.LL.4)$coefficients[3,4])
+drm_e_p<-c(drm_e_p,summary(wt_ba.LL.4)$coefficients[4,4])
+
+
+q1_af<-c(q1_af,summary(dadi$score)[2])
+q2_af<-c(q2_af,summary(dadi$score)[3])
+q3_af<-c(q3_af,summary(dadi$score)[5])
+
+min_af_s<-c(min_af_s,min(dadi$score))
+max_af_s<-c(max_af_s,max(dadi$score))
+min_nanosecond<-c(min_nanosecond,which.min(dadi$score))
+max_nanosecond<-c(max_nanosecond,which.max(dadi$score))
+
+bp.score_v <- list(breakpoints(dadi$score ~ 1, h = 2)$breakpoints)
+bp.score_values_list[[bau[i]]]<-bp.score_v
+
+bp.score_v_af <- list(dadi$score[breakpoints(dadi$score ~ 1, h = 2)$breakpoints])
+bp.score_values_af_list[[bau[i]]]<-bp.score_v_af
+
+
+#pagina 178 del pdf del libro
+hazard_drm<-c(hazard_drm,
+-1*coef(wt_ba.LL.4)[1]
+/
+(
+(coef(wt_ba.LL.4)[3]-coef(wt_ba.LL.4)[2]) / 
+(4*coef(wt_ba.LL.4)[4])
+)
+)
+
+#library(strucchange)
+fs.score <- Fstats(as.ts(dadi$score) ~ 1)
+
+thr_ns<-c(thr_ns,breakpoints(fs.score)$breakpoints)
+thr_af_s<-c(thr_af_s,dadi$score[breakpoints(fs.score)$breakpoints])
+
+f_stats_p<-c(f_stats_p,sctest(fs.score, type="aveF")$p.value)
+
+library(lm.br)
+m0.br<-lm.br(score ~ ns, data = dadi,type ="LT")
+thr_ns_br<-c(thr_ns_br,m0.br$coef[1])
+thr_af_s_br<-c(thr_af_s_br,m0.br$coef[2])
+}
+
+#coefficienti<-round(data.frame(b0_lm,b1_lm,b_drm,c_drm,d_drm,e_drm,hazard_drm,min_af_s,min_nanosecond,max_af_s,max_nanosecond,thr_ns,thr_af_s,thr_ns_br,thr_af_s_br),4)
+coefficienti<-round(data.frame(q1_af,q2_af,q3_af,b0_lm,b1_lm,b_drm,c_drm,d_drm,e_drm,hazard_drm,max_af_s,max_nanosecond,min_af_s,min_nanosecond,thr_ns,thr_af_s,thr_ns_br,thr_af_s_br),4)
+coefficienti_exp_cond<-data.frame(Exp_cond=bau,coefficienti)
+pvalue_modelling<-round(data.frame(lm_b0_p,lm_b1_p,drm_b_p,drm_c_p,drm_d_p,drm_e_p,f_stats_p),4)
+pvalue_modelling_exp_cond<-data.frame(Exp_cond=bau,pvalue_modelling)
+
+return(list(coefficienti_exp_cond,pvalue_modelling_exp_cond,bp.score_values_list,bp.score_values_af_list))
+}
+
+
+##################
+###Importazione###
+##################
+
+dati_p<-read.csv2(file.choose(),header=T,sep=",",dec=".") #importa file STRATIBODY.csv
+head(dati_p)
+colnames(dati_p)
+dim(dati_p) #3535    4
+summary(dati_p)
+table(dati_p$E.C.)
+
+
+
+
+
+###########################
+###Applicazione funzione###
+###########################
+
+risultati<-extract(dati=dati_p); risultati
+
+getwd()
+#write.table(risultati,"risultati_w_br_all_quartiles.csv",col.names=T,row.names=F,sep=";",dec=",")
+#write.table(risultati[[2]],"risultati_w_br_all_Pvalue.csv",col.names=T,row.names=F,sep=";",dec=",")
+
+options(scipen=9999999)
+
+G.LL.4 <- drm(score ~ ns,
+data = subset(dati_p, E.C. == "BETA-SOTROVIMAB"),
+#fct = LL.4(fixed=c(NA, NA, 1, NA),
+#                           names = c("Slope", "Lower Limit", "Upper Limit", "ED50")),
+fct = LL.4())
+
+summary(G.LL.4)
+confint(G.LL.4)
+
+plot(G.LL.4,legend=NULL,ylim=c(0.6,1),
+broken = TRUE,
+xlab = "Nanosecond",
+ylab = "Affinity score (unit)", col=c(1),pch=".",
+main="Dose-response modelling for ...",lwd=1,lty=rep(1))
+abline(h=1,lty=2)
+
+
+
+
+##################################################
+###Plot per variante stratificate per anticorpo###
+##################################################
+
+table(dati_p$E.C.)
+
+########
+###WT###
+########
+
+prova<-dati_p[(dati_p$E.C=="WT-LyCov555") | 
+(dati_p$E.C=="WT-LyCov016") |
+(dati_p$E.C=="WT-CTP59") |
+(dati_p$E.C=="WT-AZD1061") |
+(dati_p$E.C=="WT-AZD8895") |
+(dati_p$E.C=="WT-SOTROVIMAB") |
+(dati_p$E.C=="WT-EY6A")
+,]
+
+head(prova)
+colnames(prova)
+dim(prova) #707   4
+summary(prova)
+table(prova$E.C.)
+
+
+###OVERALL PLOT###
+
+par(mfrow=c(1,2))
+
+plot(prova$ns[1:101],prova$score[1:101],type="l",pch=20,ylab="Affinity score (units)", xlab="Nanosecond", main="Wild Type - Antibodies",ylim=c(0.6,1), col = 1)
+points(prova$ns[1:101],prova$score[102:202],type="l",pch=20, col = 2)
+points(prova$ns[1:101],prova$score[203:303],type="l",pch=20, col = 3)
+points(prova$ns[1:101],prova$score[304:404],type="l",pch=20, col = 4)
+points(prova$ns[1:101],prova$score[405:505],type="l",pch=20, col = 5)
+points(prova$ns[1:101],prova$score[506:606],type="l",pch=20, col = 6)
+points(prova$ns[1:101],prova$score[607:707],type="l",pch=20, col = 7)
+
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("LyCov555","LyCov016","CTP59","AZD1061","AZD8895","SOTROVIMAB","EY6A"),
+lty=rep(1,7),col=c(1,2,3,4,5,6,7),lwd=rep(1,7),cex=0.75)
+
+
+
+
+################################################
+######DOSE RESPONSE MODELLING STRATIFIED########
+################################################
+
+#http://www.darrenkoppel.com/2020/09/04/dose-response-modelling-and-model-selection-in-r/
+
+options(scipen=99999999)
+
+colnames(prova)
+head(prova)
+
+prova$E.C. <- relevel(factor(prova$E.C.), ref = "WT-AZD1061")
+
+
+G.WT.LL.4 <- drm(score ~ ns,
+curveid = E.C.,
+#curveid = relevel(factor(E.C.), ref="WT-LyCov016"),
+data = prova,
+#fct = LL.4(fixed=c(NA, NA, 1, NA),
+#                           names = c("Slope", "Lower Limit", "Upper Limit", "ED50")),
+fct = LL.4(),
+pmodels = list(~E.C.,
+~E.C.,
+~E.C.,
+~E.C.))
+
+summary(G.WT.LL.4)
+confint(G.WT.LL.4)
+
+#Pag. 172
+#To obtain a 95% confidence interval, the constant K is equal to the 97.5% percentile
+#in a t distribution with degrees of freedom equal to the number of
+#response values minus the number of parameters in the model function used
+#in the model.
+
+#Esempio di intervallo di confidenza calcolato a mano (28 parametri nel modello fittato)
+c(12.271274529 - qt(0.975,707-28)* 5.717333239, 12.271274529 + qt(0.975,707-28)* 5.717333239)
+
+
+compParm(G.WT.LL.4, "b", "-")
+compParm(G.WT.LL.4, "c", "-")
+compParm(G.WT.LL.4, "d", "-")
+compParm(G.WT.LL.4, "e", "-")
+
+
+
+
+plot(G.WT.LL.4,legend=NULL,ylim=c(0.6,1),
+broken = TRUE,
+xlab = "Nanosecond",
+ylab = "Affinity score (unit)", col=c(1,2,3,4,5,6,7),pch=".",
+main="Dose-response modelling for Wild Type across antibodies",lwd=1,lty=rep(1,7))
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("LyCov555","LyCov016","CTP59","AZD1061","AZD8895","SOTROVIMAB","EY6A"),
+lty=rep(1,7),col=c(1,2,3,4,5,6,7),cex=0.75)
+
+
+
+
+##########
+###ALFA###
+##########
+
+prova<-dati_p[(dati_p$E.C=="ALFA-LyCov555") | 
+(dati_p$E.C=="ALFA-LyCov016") |
+(dati_p$E.C=="ALFA-CTP59") |
+(dati_p$E.C=="ALFA-AZD1061") |
+(dati_p$E.C=="ALFA-AZD8895") |
+(dati_p$E.C=="ALFA-SOTROVIMAB") |
+(dati_p$E.C=="ALFA-EY6A")
+,]
+
+head(prova)
+colnames(prova)
+dim(prova) #707   4
+summary(prova)
+table(prova$E.C.)
+
+
+###OVERALL PLOT###
+
+par(mfrow=c(1,2))
+
+plot(prova$ns[1:101],prova$score[1:101],type="l",pch=20,ylab="Affinity score (units)", xlab="Nanosecond", main="Alpha variant - Antibodies",ylim=c(0.6,1), col = 1)
+points(prova$ns[1:101],prova$score[102:202],type="l",pch=20, col = 2)
+points(prova$ns[1:101],prova$score[203:303],type="l",pch=20, col = 3)
+points(prova$ns[1:101],prova$score[304:404],type="l",pch=20, col = 4)
+points(prova$ns[1:101],prova$score[405:505],type="l",pch=20, col = 5)
+points(prova$ns[1:101],prova$score[506:606],type="l",pch=20, col = 6)
+points(prova$ns[1:101],prova$score[607:707],type="l",pch=20, col = 7)
+
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("LyCov555","LyCov016","CTP59","AZD1061","AZD8895","SOTROVIMAB","EY6A"),
+lty=rep(1,7),col=c(1,2,3,4,5,6,7),lwd=rep(1,7),cex=0.75)
+
+
+
+
+################################################
+######DOSE RESPONSE MODELLING STRATIFIED########
+################################################
+
+colnames(prova)
+head(prova)
+
+prova$E.C. <- relevel(factor(prova$E.C.), ref = "ALFA-AZD1061")
+
+G.ALFA.LL.4 <- drm(score ~ ns,
+curveid = E.C.,
+#curveid = relevel(factor(E.C.), ref="ALFA-LyCov016"),
+data = prova,
+fct = LL.4(),
+pmodels = list(~E.C.,
+~E.C.,
+~E.C.,
+~E.C.))
+
+summary(G.ALFA.LL.4)
+
+compParm(G.ALFA.LL.4, "b", "-")
+compParm(G.ALFA.LL.4, "c", "-")
+compParm(G.ALFA.LL.4, "d", "-")
+compParm(G.ALFA.LL.4, "e", "-")
+
+plot(G.ALFA.LL.4,legend=NULL,ylim=c(0.6,1),
+broken = TRUE,
+xlab = "Nanosecond",
+ylab = "Affinity score (unit)", col=c(1,2,3,4,5,6,7),pch=".",
+main="Dose-response modelling for Alpha variant across antibodies",lwd=1,lty=rep(1,7))
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("LyCov555","LyCov016","CTP59","AZD1061","AZD8895","SOTROVIMAB","EY6A"),
+lty=rep(1,7),col=c(1,2,3,4,5,6,7),cex=0.75)
+
+
+
+
+##########
+###BETA###
+##########
+
+prova<-dati_p[(dati_p$E.C=="BETA-LyCov555") | 
+(dati_p$E.C=="BETA-LyCov016") |
+(dati_p$E.C=="BETA-CTP59") |
+(dati_p$E.C=="BETA-AZD1061") |
+(dati_p$E.C=="BETA-AZD8895") |
+(dati_p$E.C=="BETA-SOTROVIMAB") |
+(dati_p$E.C=="BETA-EY6A")
+,]
+
+head(prova)
+colnames(prova)
+dim(prova) #707   4
+summary(prova)
+table(prova$E.C.)
+
+
+###OVERALL PLOT###
+
+par(mfrow=c(1,2))
+
+plot(prova$ns[1:101],prova$score[1:101],type="l",pch=20,ylab="Affinity score (units)", xlab="Nanosecond", main="Beta variant - Antibodies",ylim=c(0.3,1), col = 1)
+points(prova$ns[1:101],prova$score[102:202],type="l",pch=20, col = 2)
+points(prova$ns[1:101],prova$score[203:303],type="l",pch=20, col = 3)
+points(prova$ns[1:101],prova$score[304:404],type="l",pch=20, col = 4)
+points(prova$ns[1:101],prova$score[405:505],type="l",pch=20, col = 5)
+points(prova$ns[1:101],prova$score[506:606],type="l",pch=20, col = 6)
+points(prova$ns[1:101],prova$score[607:707],type="l",pch=20, col = 7)
+
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("LyCov555","LyCov016","CTP59","AZD1061","AZD8895","SOTROVIMAB","EY6A"),
+lty=rep(1,7),col=c(1,2,3,4,5,6,7),lwd=rep(1,7),cex=0.75)
+
+
+
+
+################################################
+######DOSE RESPONSE MODELLING STRATIFIED########
+################################################
+
+colnames(prova)
+head(prova)
+
+prova$E.C. <- relevel(factor(prova$E.C.), ref = "BETA-AZD1061")
+
+
+G.BETA.LL.4 <- drm(score ~ ns,
+curveid = E.C.,
+#curveid = relevel(factor(E.C.), ref="BETA-LyCov016"),
+data = prova,
+#fct = LL.4(),
+#fct = LL.4(fixed=c(NA, NA, 1, NA)),
+fct = LL.2(),
+pmodels = list(~E.C.,
+~E.C.,
+~E.C.,
+~E.C.))
+
+summary(G.BETA.LL.4)
+
+compParm(G.BETA.LL.4, "b", "-")
+compParm(G.BETA.LL.4, "c", "-")
+compParm(G.BETA.LL.4, "d", "-")
+compParm(G.BETA.LL.4, "e", "-")
+
+
+
+plot(G.BETA.LL.4,legend=NULL,ylim=c(0.3,1),
+broken = TRUE,
+xlab = "Nanosecond",
+ylab = "Affinity score (unit)", col=c(1,2,3,4,5,6,7),pch=".",
+main="Dose-response modelling for Beta variant across antibodies",lwd=1,lty=rep(1,7))
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("LyCov555","LyCov016","CTP59","AZD1061","AZD8895","SOTROVIMAB","EY6A"),
+lty=rep(1,7),col=c(1,2,3,4,5,6,7),cex=0.75)
+
+
+
+
+###########
+###DELTA###
+###########
+
+prova<-dati_p[(dati_p$E.C=="DELTA-LyCov555") | 
+(dati_p$E.C=="DELTA-LyCov016") |
+(dati_p$E.C=="DELTA-CTP59") |
+(dati_p$E.C=="DELTA-AZD1061") |
+(dati_p$E.C=="DELTA-AZD8895") |
+(dati_p$E.C=="DELTA-SOTROVIMAB") |
+(dati_p$E.C=="DELTA-EY6A")
+,]
+
+head(prova)
+colnames(prova)
+dim(prova) #707   4
+summary(prova)
+table(prova$E.C.)
+
+
+###OVERALL PLOT###
+
+par(mfrow=c(1,2))
+
+plot(prova$ns[1:101],prova$score[1:101],type="l",pch=20,ylab="Affinity score (units)", xlab="Nanosecond", main="Delta variant - Antibodies",ylim=c(0.6,1), col = 1)
+points(prova$ns[1:101],prova$score[102:202],type="l",pch=20, col = 2)
+points(prova$ns[1:101],prova$score[203:303],type="l",pch=20, col = 3)
+points(prova$ns[1:101],prova$score[304:404],type="l",pch=20, col = 4)
+points(prova$ns[1:101],prova$score[405:505],type="l",pch=20, col = 5)
+points(prova$ns[1:101],prova$score[506:606],type="l",pch=20, col = 6)
+points(prova$ns[1:101],prova$score[607:707],type="l",pch=20, col = 7)
+
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("LyCov555","LyCov016","CTP59","AZD1061","AZD8895","SOTROVIMAB","EY6A"),
+lty=rep(1,7),col=c(1,2,3,4,5,6,7),lwd=rep(1,7),cex=0.75)
+
+
+
+
+################################################
+######DOSE RESPONSE MODELLING STRATIFIED########
+################################################
+
+colnames(prova)
+head(prova)
+
+prova$E.C. <- relevel(factor(prova$E.C.), ref = "DELTA-AZD1061")
+
+G.DELTA.LL.4 <- drm(score ~ ns,
+curveid = E.C.,
+#curveid = relevel(factor(E.C.), ref="DELTA-LyCov016"),
+data = prova,
+fct = LL.4(),
+pmodels = list(~E.C.,
+~E.C.,
+~E.C.,
+~E.C.))
+
+summary(G.DELTA.LL.4)
+
+compParm(G.DELTA.LL.4, "b", "-")
+compParm(G.DELTA.LL.4, "c", "-")
+compParm(G.DELTA.LL.4, "d", "-")
+compParm(G.DELTA.LL.4, "e", "-")
+
+plot(G.DELTA.LL.4,legend=NULL,ylim=c(0.6,1),
+broken = TRUE,
+xlab = "Nanosecond",
+ylab = "Affinity score (unit)", col=c(1,2,3,4,5,6,7),pch=".",
+main="Dose-response modelling for Delta variant across antibodies",lwd=1,lty=rep(1,7))
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("LyCov555","LyCov016","CTP59","AZD1061","AZD8895","SOTROVIMAB","EY6A"),
+lty=rep(1,7),col=c(1,2,3,4,5,6,7),cex=0.75)
+
+
+
+#############
+###OMICRON###
+#############
+
+prova<-dati_p[(dati_p$E.C=="OMICRON-LyCov555") | 
+(dati_p$E.C=="OMICRON-LyCov016") |
+(dati_p$E.C=="OMICRON-CTP59") |
+(dati_p$E.C=="OMICRON-AZD1061") |
+(dati_p$E.C=="OMICRON-AZD8895") |
+(dati_p$E.C=="OMICRON-SOTROVIMAB") |
+(dati_p$E.C=="OMICRON-EY6A")
+,]
+
+head(prova)
+colnames(prova)
+dim(prova) #707   4
+summary(prova)
+table(prova$E.C.)
+
+
+###OVERALL PLOT###
+
+par(mfrow=c(1,2))
+
+plot(prova$ns[1:101],prova$score[1:101],type="l",pch=20,ylab="Affinity score (units)", xlab="Nanosecond", main="Omicron variant - Antibodies",ylim=c(0.3,1), col = 1)
+points(prova$ns[1:101],prova$score[102:202],type="l",pch=20, col = 2)
+points(prova$ns[1:101],prova$score[203:303],type="l",pch=20, col = 3)
+points(prova$ns[1:101],prova$score[304:404],type="l",pch=20, col = 4)
+points(prova$ns[1:101],prova$score[405:505],type="l",pch=20, col = 5)
+points(prova$ns[1:101],prova$score[506:606],type="l",pch=20, col = 6)
+points(prova$ns[1:101],prova$score[607:707],type="l",pch=20, col = 7)
+
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("LyCov555","LyCov016","CTP59","AZD1061","AZD8895","SOTROVIMAB","EY6A"),
+lty=rep(1,7),col=c(1,2,3,4,5,6,7),lwd=rep(1,7),cex=0.75)
+
+
+################################################
+######DOSE RESPONSE MODELLING STRATIFIED########
+################################################
+
+colnames(prova)
+head(prova)
+
+prova$E.C. <- relevel(factor(prova$E.C.), ref = "OMICRON-AZD1061")
+
+G.OMICRON.W2.4 <- drm(score ~ ns,
+curveid = E.C.,
+#curveid = relevel(factor(E.C.), ref="OMICRON-LyCov016"),
+data = prova,
+fct = W2.4(),
+pmodels = list(~E.C.,
+~E.C.,
+~E.C.,
+~E.C.))
+
+summary(G.OMICRON.W2.4)
+
+compParm(G.OMICRON.W2.4, "b", "-")
+compParm(G.OMICRON.W2.4, "c", "-")
+compParm(G.OMICRON.W2.4, "d", "-")
+compParm(G.OMICRON.W2.4, "e", "-")
+
+plot(G.OMICRON.W2.4,legend=NULL,ylim=c(0.3,1),
+broken = TRUE,
+xlab = "Nanosecond",
+ylab = "Affinity score (unit)", col=c(1,2,3,4,5,6,7),pch=".",
+main="Dose-response modelling for Omicron variant across antibodies",lwd=1,lty=rep(1,7))
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("LyCov555","LyCov016","CTP59","AZD1061","AZD8895","SOTROVIMAB","EY6A"),
+lty=rep(1,7),col=c(1,2,3,4,5,6,7),cex=0.75)
+
+
+
+##############
+###LyCov555###
+##############
+
+prova<-dati_p[(dati_p$E.C=="WT-LyCov555") | 
+(dati_p$E.C=="ALFA-LyCov555") |
+(dati_p$E.C=="BETA-LyCov555") |
+(dati_p$E.C=="DELTA-LyCov555") |
+(dati_p$E.C=="OMICRON-LyCov555")
+,]
+
+head(prova)
+colnames(prova)
+dim(prova) #505   4
+summary(prova)
+table(prova$E.C.)
+
+
+###OVERALL PLOT###
+
+par(mfrow=c(1,2))
+
+plot(prova$ns[1:101],prova$score[1:101],type="l",pch=20,ylab="Affinity score (units)", xlab="Nanosecond", main="LyCov555 Antibody - Variants",ylim=c(0.3,1), col = "green")
+points(prova$ns[1:101],prova$score[102:202],type="l",pch=20, col = "violet")
+points(prova$ns[1:101],prova$score[203:303],type="l",pch=20, col = "red")
+points(prova$ns[1:101],prova$score[304:404],type="l",pch=20, col = "orange")
+points(prova$ns[1:101],prova$score[405:505],type="l",pch=20, col = "blue")
+
+
+
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),lwd=rep(1,5),cex=0.75)
+
+
+
+################################################
+######DOSE RESPONSE MODELLING STRATIFIED########
+################################################
+
+colnames(prova)
+head(prova)
+
+prova$E.C. <- relevel(factor(prova$E.C.), ref = "WT-LyCov555")
+
+G.LyCov555.LL.4 <- drm(score ~ ns,
+curveid = E.C.,
+#curveid = relevel(factor(E.C.), ref="WT-LyCov555"),
+data = prova,
+fct = LL.4(),
+pmodels = list(~E.C.,
+~E.C.,
+~E.C.,
+~E.C.))
+
+summary(G.LyCov555.LL.4)
+
+compParm(G.LyCov555.LL.4, "b", "-")
+compParm(G.LyCov555.LL.4, "c", "-")
+compParm(G.LyCov555.LL.4, "d", "-")
+compParm(G.LyCov555.LL.4, "e", "-")
+
+
+plot(G.LyCov555.LL.4,legend=NULL,ylim=c(0.3,1),
+broken = TRUE,
+xlab = "Nanosecond",
+ylab = "Affinity score (units)", col=c("green","violet","red","orange","blue"),pch=".",
+main="Dose-response modelling for LyCov555 antibody across variants",lwd=1,lty=rep(1,5))
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),cex=0.75)
+
+
+
+##############
+###LyCov016###
+##############
+
+prova<-dati_p[(dati_p$E.C=="WT-LyCov016") | 
+(dati_p$E.C=="ALFA-LyCov016") |
+(dati_p$E.C=="BETA-LyCov016") |
+(dati_p$E.C=="DELTA-LyCov016") |
+(dati_p$E.C=="OMICRON-LyCov016")
+,]
+
+head(prova)
+colnames(prova)
+dim(prova) #505  4
+summary(prova)
+table(prova$E.C.)
+
+
+###OVERALL PLOT###
+
+par(mfrow=c(1,2))
+
+plot(prova$ns[1:101],prova$score[1:101],type="l",pch=20,ylab="Affinity score (units)", xlab="Nanosecond", main="LyCov016 Antibody - Variants",ylim=c(0.3,1), col = "green")
+points(prova$ns[1:101],prova$score[102:202],type="l",pch=20, col = "violet")
+points(prova$ns[1:101],prova$score[203:303],type="l",pch=20, col = "red")
+points(prova$ns[1:101],prova$score[304:404],type="l",pch=20, col = "orange")
+points(prova$ns[1:101],prova$score[405:505],type="l",pch=20, col = "blue")
+
+
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),lwd=rep(1,5),cex=0.75)
+
+
+
+################################################
+######DOSE RESPONSE MODELLING STRATIFIED########
+################################################
+
+colnames(prova)
+head(prova)
+
+prova$E.C. <- relevel(factor(prova$E.C.), ref = "WT-LyCov016")
+
+G.LyCov016.LL.4 <- drm(score ~ ns,
+curveid = E.C.,
+#curveid = relevel(factor(E.C.), ref="WT-LyCov016"),
+data = prova,
+fct = LL.4(),
+pmodels = list(~E.C.,
+~E.C.,
+~E.C.,
+~E.C.))
+
+summary(G.LyCov016.LL.4)
+
+compParm(G.LyCov016.LL.4, "b", "-")
+compParm(G.LyCov016.LL.4, "c", "-")
+compParm(G.LyCov016.LL.4, "d", "-")
+compParm(G.LyCov016.LL.4, "e", "-")
+
+
+plot(G.LyCov016.LL.4,legend=NULL,ylim=c(0.3,1),
+broken = TRUE,
+xlab = "Nanosecond",
+ylab = "Affinity score (units)", col=c("green","violet","red","orange","blue"),pch=".",
+main="Dose-response modelling for LyCov016 antibody across variants",lwd=1,lty=rep(1,5))
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),cex=0.75)
+
+
+
+
+###########
+###CTP59###
+###########
+
+prova<-dati_p[(dati_p$E.C=="WT-CTP59") | 
+(dati_p$E.C=="ALFA-CTP59") |
+(dati_p$E.C=="BETA-CTP59") |
+(dati_p$E.C=="DELTA-CTP59") |
+(dati_p$E.C=="OMICRON-CTP59")
+,]
+
+head(prova)
+colnames(prova)
+dim(prova) #505   4
+summary(prova)
+table(prova$E.C.)
+
+
+###OVERALL PLOT###
+
+par(mfrow=c(1,2))
+plot(prova$ns[1:101],prova$score[1:101],type="l",pch=20,ylab="Affinity score (units)", xlab="Nanosecond", main="CTP59 Antibody - Variants",ylim=c(0.3,1), col = "green")
+points(prova$ns[1:101],prova$score[102:202],type="l",pch=20, col = "violet")
+points(prova$ns[1:101],prova$score[203:303],type="l",pch=20, col = "red")
+points(prova$ns[1:101],prova$score[304:404],type="l",pch=20, col = "orange")
+points(prova$ns[1:101],prova$score[405:505],type="l",pch=20, col = "blue")
+
+
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),lwd=rep(1,5),cex=0.75)
+
+
+
+################################################
+######DOSE RESPONSE MODELLING STRATIFIED########
+################################################
+
+colnames(prova)
+head(prova)
+
+prova$E.C. <- relevel(factor(prova$E.C.), ref = "WT-CTP59")
+
+G.CTP59.LL.4 <- drm(score ~ ns,
+curveid = E.C.,
+#curveid = relevel(factor(E.C.), ref="WT-CTP59"),
+data = prova,
+fct = LL.4(),
+pmodels = list(~E.C.,
+~E.C.,
+~E.C.,
+~E.C.))
+
+summary(G.CTP59.LL.4)
+
+compParm(G.CTP59.LL.4, "b", "-")
+compParm(G.CTP59.LL.4, "c", "-")
+compParm(G.CTP59.LL.4, "d", "-")
+compParm(G.CTP59.LL.4, "e", "-")
+
+plot(G.CTP59.LL.4,legend=NULL,ylim=c(0.3,1),
+broken = TRUE,
+xlab = "Nanosecond",
+ylab = "Affinity score (units)", col=c("green","violet","red","orange","blue"),pch=".",
+main="Dose-response modelling for CTP59 antibody across variants",lwd=1,lty=rep(1,5))
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),cex=0.75)
+
+
+
+#############
+###AZD1061###
+#############
+
+prova<-dati_p[(dati_p$E.C=="WT-AZD1061") | 
+(dati_p$E.C=="ALFA-AZD1061") |
+(dati_p$E.C=="BETA-AZD1061") |
+(dati_p$E.C=="DELTA-AZD1061") |
+(dati_p$E.C=="OMICRON-AZD1061")
+,]
+
+head(prova)
+colnames(prova)
+dim(prova) #505   4
+summary(prova)
+table(prova$E.C.)
+
+
+###OVERALL PLOT###
+
+par(mfrow=c(1,2))
+
+plot(prova$ns[1:101],prova$score[1:101],type="l",pch=20,ylab="Affinity score (units)", xlab="Nanosecond", main="AZD1061 Antibody - Variants",ylim=c(0.3,1), col = "green")
+points(prova$ns[1:101],prova$score[102:202],type="l",pch=20, col = "violet")
+points(prova$ns[1:101],prova$score[203:303],type="l",pch=20, col = "red")
+points(prova$ns[1:101],prova$score[304:404],type="l",pch=20, col = "orange")
+points(prova$ns[1:101],prova$score[405:505],type="l",pch=20, col = "blue")
+
+
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),lwd=rep(1,5),cex=0.75)
+
+
+
+################################################
+######DOSE RESPONSE MODELLING STRATIFIED########
+################################################
+
+colnames(prova)
+head(prova)
+
+prova$E.C. <- relevel(factor(prova$E.C.), ref = "WT-AZD1061")
+
+G.AZD1061.LL.4 <- drm(score ~ ns,
+curveid = E.C.,
+#curveid = relevel(factor(E.C.), ref="WT-AZD1061"),
+data = prova,
+fct = LL.4(),
+pmodels = list(~E.C.,
+~E.C.,
+~E.C.,
+~E.C.)
+)
+
+summary(G.AZD1061.LL.4)
+
+compParm(G.AZD1061.LL.4, "b", "-")
+compParm(G.AZD1061.LL.4, "c", "-")
+compParm(G.AZD1061.LL.4, "d", "-")
+compParm(G.AZD1061.LL.4, "e", "-")
+
+plot(G.AZD1061.LL.4,legend=NULL,ylim=c(0.3,1),
+broken = TRUE,
+xlab = "Nanosecond",
+ylab = "Affinity score (units)", col=c("green","violet","red","orange","blue"),pch=".",
+main="Dose-response modelling for AZD1061 antibody across variants",lwd=1,lty=rep(1,5))
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),cex=0.75)
+
+
+
+#############
+###AZD8895###
+#############
+
+prova<-dati_p[(dati_p$E.C=="WT-AZD8895") | 
+(dati_p$E.C=="ALFA-AZD8895") |
+(dati_p$E.C=="BETA-AZD8895") |
+(dati_p$E.C=="DELTA-AZD8895") |
+(dati_p$E.C=="OMICRON-AZD8895")
+,]
+
+head(prova)
+colnames(prova)
+dim(prova) #505   4
+summary(prova)
+table(prova$E.C.)
+
+
+###OVERALL PLOT###
+
+par(mfrow=c(1,2))
+
+plot(prova$ns[1:101],prova$score[1:101],type="l",pch=20,ylab="Affinity score (units)", xlab="Nanosecond", main="AZD8895 Antibody - Variants",ylim=c(0.3,1), col = "green")
+points(prova$ns[1:101],prova$score[102:202],type="l",pch=20, col = "violet")
+points(prova$ns[1:101],prova$score[203:303],type="l",pch=20, col = "red")
+points(prova$ns[1:101],prova$score[304:404],type="l",pch=20, col = "orange")
+points(prova$ns[1:101],prova$score[405:505],type="l",pch=20, col = "blue")
+
+
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),lwd=rep(1,5),cex=0.75)
+
+
+
+################################################
+######DOSE RESPONSE MODELLING STRATIFIED########
+################################################
+
+colnames(prova)
+head(prova)
+
+prova$E.C. <- relevel(factor(prova$E.C.), ref = "WT-AZD8895")
+
+G.AZD8895.LL.4 <- drm(score ~ ns,
+curveid = E.C.,
+#curveid = relevel(factor(E.C.), ref="WT-AZD8895"),
+data = prova,
+fct = LL.4(),
+pmodels = list(~E.C.,
+~E.C.,
+~E.C.,
+~E.C.))
+
+summary(G.AZD8895.LL.4)
+
+compParm(G.AZD8895.LL.4, "b", "-")
+compParm(G.AZD8895.LL.4, "c", "-")
+compParm(G.AZD8895.LL.4, "d", "-")
+compParm(G.AZD8895.LL.4, "e", "-")
+
+plot(G.AZD8895.LL.4,legend=NULL,ylim=c(0.3,1),
+broken = TRUE,
+xlab = "Nanosecond",
+ylab = "Affinity score (units)", col=c("green","violet","red","orange","blue"),pch=".",
+main="Dose-response modelling for AZD8895 antibody across variants",lwd=1,lty=rep(1,5))
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),cex=0.75)
+
+
+
+################
+###SOTROVIMAB###
+################
+
+prova<-dati_p[(dati_p$E.C=="WT-SOTROVIMAB") | 
+(dati_p$E.C=="ALFA-SOTROVIMAB") |
+(dati_p$E.C=="BETA-SOTROVIMAB") |
+(dati_p$E.C=="DELTA-SOTROVIMAB") |
+(dati_p$E.C=="OMICRON-SOTROVIMAB")
+,]
+
+head(prova)
+colnames(prova)
+dim(prova) #505   4
+summary(prova)
+table(prova$E.C.)
+
+
+###OVERALL PLOT###
+
+par(mfrow=c(1,2))
+
+plot(prova$ns[1:101],prova$score[1:101],type="l",pch=20,ylab="Affinity score (units)", xlab="Nanosecond", main="SOTROVIMAB Antibody - Variants",ylim=c(0.3,1), col = "green")
+points(prova$ns[1:101],prova$score[102:202],type="l",pch=20, col = "violet")
+points(prova$ns[1:101],prova$score[203:303],type="l",pch=20, col = "red")
+points(prova$ns[1:101],prova$score[304:404],type="l",pch=20, col = "orange")
+points(prova$ns[1:101],prova$score[405:505],type="l",pch=20, col = "blue")
+
+
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),lwd=rep(1,5),cex=0.75)
+
+
+
+################################################
+######DOSE RESPONSE MODELLING STRATIFIED########
+################################################
+
+colnames(prova)
+head(prova)
+
+prova$E.C. <- relevel(factor(prova$E.C.), ref = "WT-SOTROVIMAB")
+
+G.SOTROVIMAB.LL.4 <- drm(score ~ ns,
+curveid = E.C.,
+#curveid = relevel(factor(E.C.), ref="WT-SOTROVIMAB"),
+data = prova,
+fct = LL.4(),
+pmodels = list(~E.C.,
+~E.C.,
+~E.C.,
+~E.C.))
+
+summary(G.SOTROVIMAB.LL.4)
+
+compParm(G.SOTROVIMAB.LL.4, "b", "-")
+compParm(G.SOTROVIMAB.LL.4, "c", "-")
+compParm(G.SOTROVIMAB.LL.4, "d", "-")
+compParm(G.SOTROVIMAB.LL.4, "e", "-")
+
+plot(G.SOTROVIMAB.LL.4,legend=NULL,ylim=c(0.3,1),
+broken = TRUE,
+xlab = "Nanosecond",
+ylab = "Affinity score (units)", col=c("green","violet","red","orange","blue"),pch=".",
+main="Dose-response modelling for SOTROVIMAB antibody across variants",lwd=1,lty=rep(1,5))
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),cex=0.75)
+
+
+
+##########
+###EY6A###
+##########
+
+prova<-dati_p[(dati_p$E.C=="WT-EY6A") | 
+(dati_p$E.C=="ALFA-EY6A") |
+(dati_p$E.C=="BETA-EY6A") |
+(dati_p$E.C=="DELTA-EY6A") |
+(dati_p$E.C=="OMICRON-EY6A")
+,]
+
+head(prova)
+colnames(prova)
+dim(prova) #505   4
+summary(prova)
+table(prova$E.C.)
+
+
+###OVERALL PLOT###
+
+par(mfrow=c(1,2))
+
+plot(prova$ns[1:101],prova$score[1:101],type="l",pch=20,ylab="Affinity score (units)", xlab="Nanosecond", main="EY6A Antibody - Variants",ylim=c(0.3,1), col = "green")
+points(prova$ns[1:101],prova$score[102:202],type="l",pch=20, col = "violet")
+points(prova$ns[1:101],prova$score[203:303],type="l",pch=20, col = "red")
+points(prova$ns[1:101],prova$score[304:404],type="l",pch=20, col = "orange")
+points(prova$ns[1:101],prova$score[405:505],type="l",pch=20, col = "blue")
+
+
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),lwd=rep(1,5),cex=0.75)
+
+
+
+################################################
+######DOSE RESPONSE MODELLING STRATIFIED########
+################################################
+
+colnames(prova)
+head(prova)
+
+prova$E.C. <- relevel(factor(prova$E.C.), ref = "WT-EY6A")
+
+G.EY6A.LL.4 <- drm(score ~ ns,
+curveid = E.C.,
+#curveid = relevel(factor(E.C.), ref="WT-EY6A"),
+data = prova,
+fct = LL.4(),
+pmodels = list(~E.C.,
+~E.C.,
+~E.C.,
+~E.C.))
+
+summary(G.EY6A.LL.4)
+
+compParm(G.EY6A.LL.4, "b", "-")
+compParm(G.EY6A.LL.4, "c", "-")
+compParm(G.EY6A.LL.4, "d", "-")
+compParm(G.EY6A.LL.4, "e", "-")
+
+
+plot(G.EY6A.LL.4,legend=NULL,ylim=c(0.3,1),
+broken = TRUE,
+xlab = "Nanosecond",
+ylab = "Affinity score (units)", col=c("green","violet","red","orange","blue"),pch=".",
+main="Dose-response modelling for EY6A antibody across variants",lwd=1,lty=rep(1,5))
+abline(h=1,lty=2)
+
+legend("bottomleft",legend=c("WT","ALFA","BETA","DELTA","OMICRON"),
+lty=rep(1,5),col=c("green","violet","red","orange","blue"),cex=0.75)
+
+
+
+
+
+####################
+###Casi specifici###
+####################
+
+table(dati_p$E.C.)
+
+prova<-dati_p[dati_p$E.C=="DELTA-LyCov555",]
+colnames(prova)
+head(prova)
+dim(prova)
+summary(prova)
+
+par(mfrow=c(1,2))
+al_ba <- smooth.spline(prova$ns, prova$score, nknots = 10)
+plot(prova$ns,prova$score,type="o",ylab="Affinity score (units)", xlab="Nanosecond", main="Scatter plot and descriptive spline funtion, WT-CTP59",ylim=c(0.3,1))
+lines(al_ba, lwd = 2, col = "red")
+abline(h=1,lwd=2)
+
+
+m0<-lm(score ~ ns,data = prova)
+#summary(m0)
+summary(m0)$coefficients[1,4]
+summary(m0)$coefficients[2,4]
+
+
+al_ba.LL.4 <- drm(score ~ ns,
+data = prova,
+fct = LL.4())
+summary(al_ba.LL.4)
+summary(al_ba.LL.4)$coefficients
+predict(al_ba.LL.4)
+
+coef(al_ba.LL.4)
+coef(al_ba.LL.4, sandwich.vcov = TRUE)
+#coeftest(al_ba.LL.4)
+#coeftest(al_ba.LL.4, sandwich.vcov = TRUE)
+
+
+plot(al_ba.LL.4,
+bp = 0.5, broken = TRUE,
+ylim = c(0.5, 1),
+xlab = "Nanosecond", col=1,
+ylab = "Affinity score (units)",main="Dose response modelling, WT-CTP59")
+
+
+
+###############################################################################
+########SEGMENTAZIONE - CHANGE POINT ANALYSIS - BROKEN LINE REGRESSION#########
+###############################################################################
+
+
+###########################
+###R strucchange package###
+###########################
+
+#install.packages("bcp")
+#install.packages("strucchange")
+#install.packages("segmented")
+#install.packages("changepoint")
+#https://kevin-kotze.gitlab.io/tsm/ts-2-tut/
+
+library(bcp)
+library(strucchange)
+library(segmented)
+library(changepoint)
+
+as.ts(prova$score)
+plot(as.ts(prova$score),ylab="affinity score")
+
+?breakpoints
+bp.score <- breakpoints(prova$score ~ 1, h = 2); bp.score
+bp.score_values <- breakpoints(prova$score ~ 1, h = 2)$breakpoints; bp.score_values
+
+#I "Corresponding to breakdates" sono breakpoins/(numero di istanti temporali=101)
+
+prova$score[bp.score$breakpoints]
+summary(bp.score)
+plot(bp.score)
+breakpoints(bp.score)
+
+## confidence interval
+ci.score <- confint(bp.score)
+ci.score
+lines(ci.score)
+
+?Fstats
+fs.score <- Fstats(as.ts(prova$score) ~ 1)
+plot(fs.score)
+breakpoints(fs.score)
+plot(fs.score, pval=TRUE)
+sctest(fs.score, type="expF")
+sctest(fs.score, type="aveF")
+sctest(fs.score, type="supF")
+
+#sctest(fs.score, type="aveF")[2] #P-value F stats
+
+prova$score[breakpoints(fs.score)$breakpoints]
+lines(breakpoints(fs.score))
+
+plot(as.ts(prova$score),ylab="affinity score")
+abline(v=15,lty=2)
+
+
+## fit null hypothesis model and model with 1 breakpoint
+summary(prova$score)
+fm0 <- lm(as.ts(prova$score) ~ 1)
+fm1 <- lm(as.ts(prova$score) ~ breakfactor(bp.score, breaks = 1))
+summary(fm1)
+plot(as.ts(prova$score))
+lines(ts(fitted(fm0), start = 1), col = 3)
+lines(ts(fitted(fm1), start = 1), col = 4)
+lines(bp.score)
+
+
+
+###STATISTICHE PER IL PLOT###
+
+library(strucchange)
+bp.score_values <- breakpoints(prova$score ~ 1, h = 2)$breakpoints; bp.score_values
+fs.score <- Fstats(as.ts(prova$score) ~ 1)
+breakpoints(fs.score)$breakpoints
+
+library(lm.br)
+#m0.br<-lm.br(score ~ ns, data = prova)
+m0.br<-lm.br(score ~ ns, data = prova,type ="LT")
+#m0.br<-lm.br(score ~ ns, data = prova,type ="TL")
+#?lm.br
+m0.br$coef[1]
+m0.br$coef[2]
+
+cluster_plot<-c(
+rep("cluster GREEN",101),
+rep("cluster GREEN",101),
+rep("cluster BLACK",101),
+rep("cluster BLUE",101),
+rep("cluster BLUE",101),
+rep("cluster RED",101),
+rep("cluster RED",101),
+rep("cluster RED",101),
+rep("cluster RED",101),
+rep("cluster BLACK",101),
+rep("cluster BLUE",101),
+rep("cluster BLUE",101),
+rep("cluster RED",101),
+rep("cluster BLUE",101),
+rep("cluster BLACK",101),
+rep("cluster GREEN",101),
+rep("cluster GREEN",101),
+rep("cluster GREEN",101),
+rep("cluster GREEN",101),
+rep("cluster GREEN",101),
+rep("cluster GREEN",101),
+rep("cluster BLUE",101),
+rep("cluster GREEN",101),
+rep("cluster RED",101),
+rep("cluster BLUE",101),
+rep("cluster BLUE",101),
+rep("cluster BLUE",101),
+rep("cluster GREEN",101),
+rep("cluster BLUE",101),
+rep("cluster GREEN",101),
+rep("cluster GREEN",101),
+rep("cluster GREEN",101),
+rep("cluster GREEN",101),
+rep("cluster BLUE",101),
+rep("cluster GREEN",101))
+
+cluster_plot
+
+
+###PLOT###
+
+plot(prova$ns,prova$score,type="o",ylab="Affinity score (units)", xlab="Nanosecond", main=paste(paste("Scatter plot and descriptive spline funtion",unique(prova$E.C.)),paste0("(",unique(dazn$cluster_plot),")")),ylim=c(0.3,1))
+lines(al_ba, lwd = 2, col = "red")
+abline(h=1,lwd=2)
+abline(v=bp.score_values,col=3,lty=2)
+abline(v=breakpoints(fs.score)$breakpoints,col=3)
+abline(v=m0.br$coef[1],col=4)
+legend("bottomleft",legend=c("Optimal Change Points","Strongest Change Point","Broken line cut-off"),
+col=c(3,3,4),lty=c(2,1,1),cex=0.75)
+
+
+###FUNCTION###
+
+cpa_blr<- function(dazn){
+library(strucchange)
+bp.score_values <- breakpoints(dazn$score ~ 1, h = 2)$breakpoints; bp.score_values
+fs.score <- Fstats(as.ts(dazn$score) ~ 1)
+breakpoints(fs.score)$breakpoints
+
+library(lm.br)
+m0.br<-lm.br(score ~ ns, data = dazn,type ="LT")
+#m0.br$coef[1]
+#m0.br$coef[2]
+
+#al_ba <- smooth.spline(dazn$ns, dazn$score, nknots = 10)
+plot(dazn$ns,dazn$score,type="o",ylab="Affinity score (units)", xlab="Nanosecond", main=paste(paste("Time series plot",unique(dazn$E.C.)),paste0("(",unique(dazn$cluster_plot),")")),ylim=c(0.3,1))
+#lines(al_ba, lwd = 2, col = "red")
+abline(h=1,lwd=2)
+abline(v=bp.score_values,col=2,lty=2)
+abline(v=breakpoints(fs.score)$breakpoints,col=2)
+abline(v=m0.br$coef[1],col=4)
+legend("bottomleft",legend=c("Optimal Change Points","Strongest Change Point","Broken line cut-off"),
+col=c(2,2,4),lty=c(2,1,1),cex=0.75)
+}
+
+
+###APPLICAZIONE FUNZIONE###
+
+table(dati_p$E.C.)
+
+dati_p$cluster_plot<-cluster_plot
+table(dati_p$cluster_plot)
+
+prova<-dati_p[dati_p$E.C=="OMICRON-EY6A",]
+dim(prova)
+#table(prova$cluster_plot)
+
+cpa_blr(dazn=prova)
+
+
+
+
+#############################################
+###Data-driven threshold of affinity score###
+#############################################
+
+head(dati_p)
+
+
+#1: green, blue: 0: red, black
+outcome_cluster<-c(
+rep(1,101),
+rep(1,101),
+rep(0,101),
+rep(1,101),
+rep(1,101),
+rep(0,101),
+rep(0,101),
+rep(0,101),
+rep(0,101),
+rep(0,101),
+rep(1,101),
+rep(1,101),
+rep(0,101),
+rep(1,101),
+rep(0,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(0,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(1,101),
+rep(1,101))
+
+
+####CURVA ROC####
+#install.packages("pROC")
+library(pROC)
+iper.pROC <- roc(outcome_cluster, dati_p$score, percent=TRUE,
+            ci=TRUE, boot.n=100, ci.alpha=0.95, stratified=FALSE,
+            plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+            print.auc=TRUE, show.thres=TRUE); iper.pROC 
+
+ret=c("threshold", "sens", "spec", "ppv", "npv","1-ppv","1-npv", "accuracy")
+coords(iper.pROC, "all", ret=ret,best.method="closest.topleft")
+coords(iper.pROC, "best", ret=c("threshold", "sens", "spec", "ppv", "npv","1-ppv","1-npv", "accuracy"),best.method="closest.topleft")
+ci.coords(iper.pROC,"best","threshold",best.method="closest.topleft")
+
+
+#########################################
+########TIME SERIES CLUSTERING###########
+#########################################
+
+
+#####################################
+#######Distance of timeseries########
+#####################################
+
+#https://damien-datasci-blog.netlify.app/post/time-series-clustering-with-dynamic-time-warp/
+
+
+##################################################
+#######Clustering of timeseries by TSclust########
+##################################################
+
+#install.packages("TSclust")
+library(TSclust)
+
+dati<-dati_p
+head(dati)
+summary(dati)
+dati_p$E.C.[1:101]
+dim(dati) #3535    4
+dati$E.C.[3435:3535]
+
+
+ts_sim_df<-data.frame(
+WT_LyCov555=dati$score[1:101],
+ALFA_LyCov555=dati$score[102:202],
+BETA_LyCov555=dati$score[203:303],
+DELTA_LyCov555=dati$score[304:404],
+OMICRON_LyCov555=dati$score[405:505],
+WT_LyCov016=dati$score[506:606],
+ALFA_LyCov016=dati$score[607:707],
+BETA_LyCov016=dati$score[708:808],
+DELTA_LyCov016=dati$score[809:909],
+OMICRON_LyCov016=dati$score[910:1010],
+WT_CTP59=dati$score[1011:1111],
+ALFA_CTP59=dati$score[1112:1212],
+BETA_CTP59=dati$score[1213:1313],
+DELTA_CTP59=dati$score[1314:1414],
+OMICRON_CTP59=dati$score[1415:1515],
+WT_AZD1061=dati$score[1516:1616],
+ALFA_AZD1061=dati$score[1617:1717],
+BETA_AZD1061=dati$score[1718:1818],
+DELTA_AZD1061=dati$score[1819:1919],
+OMICRON_AZD1061=dati$score[1920:2020],
+WT_AZD8895=dati$score[2021:2121],
+ALFA_AZD8895=dati$score[2122:2222],
+BETA_AZD8895=dati$score[2223:2323],
+DELTA_AZD8895=dati$score[2324:2424],
+OMICRON_AZD8895=dati$score[2425:2525],
+WT_SOTROVIMAB=dati$score[2526:2626],
+ALFA_SOTROVIMAB=dati$score[2627:2727],
+BETA_SOTROVIMAB=dati$score[2728:2828],
+DELTA_SOTROVIMAB=dati$score[2829:2929],
+OMICRON_SOTROVIMAB=dati$score[2930:3030],
+WT_EY6A=dati$score[3031:3131],
+ALFA_EY6A=dati$score[3132:3232],
+BETA_EY6A=dati$score[3233:3333],
+DELTA_EY6A=dati$score[3334:3434],
+OMICRON_EY6A=dati$score[3435:3535]
+)
+
+
+
+dim(ts_sim_df) #101  35
+class(ts_sim_df)
+colnames(ts_sim_df)
+
+
+
+
+dist_ts <- TSclust::diss(SERIES = t(ts_sim_df), METHOD = "DTWARP") # note the dataframe must be transposed
+hc <- stats::hclust(dist_ts, method="complete") # meathod can be also "average" or diana (for DIvisive ANAlysis Clustering)
+
+plot(hc)
+
+#Silhouette
+sil_cl <- silhouette(cutree(hc, k=4), as.dist(dist_ts))
+plot(sil_cl)
+
+
+#install.packages("clValid")
+library(clValid)
+
+cluster <- cutree(hc, k = 4)
+dunn(dist_ts, cluster)
+
+# Ward Hierarchical Clustering with Bootstrapped p values
+install.packages("pvclust")
+library(pvclust)
+fit <- pvclust(mydata, method.hclust="ward",
+   method.dist="euclidean")
+plot(fit) # dendogram with p values
+# add rectangles around groups highly supported by the data
+pvrect(hc, alpha=.95)
+
+pvclust(hc)
+
+
+
+# k for cluster which is 4
+hclus <- stats::cutree(hc, k = 4) %>% # hclus <- cluster::pam(dist_ts, k = 4)$clustering has a similar result
+  as.data.frame(.) %>%
+  dplyr::rename(.,cluster_group = .) %>%
+  tibble::rownames_to_column("type_col")
+
+#install.packages("ggdendro")
+library(ggdendro)
+
+hcdata <- ggdendro::dendro_data(hc)
+names_order <- hcdata$labels$label
+# Use the folloing to remove labels from dendogram so not doubling up - but good for checking hcdata$labels$label <- ""
+
+p1 <- hcdata %>%
+  ggdendro::ggdendrogram(., rotate=TRUE, leaf_labels=FALSE)
+
+library(ggplot2)
+
+p2 <- ts_sim_df %>%
+  dplyr::mutate(index = 1:101) %>%
+  tidyr::gather(key = type_col,value = value, -index) %>%
+  dplyr::full_join(., hclus, by = "type_col") %>% 
+  mutate(type_col = factor(type_col, levels = rev(as.character(names_order)))) %>% 
+  ggplot(aes(x = index, y = value, colour = cluster_group)) +
+  geom_line() +
+  facet_wrap(~type_col, ncol = 1, strip.position="left") + 
+  guides(color=FALSE) +
+  theme_bw() + 
+  theme(strip.background = element_blank(), strip.text = element_blank())
+
+gp1<-ggplotGrob(p1)
+gp2<-ggplotGrob(p2) 
+
+#install.packages("grid")
+#install.packages("gtable")
+#install.packages("gridExtra")
+
+library(grid)
+library(gtable)
+library(gridExtra)
+
+grid.arrange(gp2, gp1, ncol=2, widths=c(4,2))
+
+
+
+
+
