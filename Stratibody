@@ -1574,5 +1574,305 @@ grid.arrange(gp2, gp1, ncol=2, widths=c(4,2))
 
 
 
+##########################
+###HEATMAPS OF RESIDUES###
+##########################
+
+
+#install.packages("tidyverse")
+library(tidyverse)
+
+#install.packages("ggplot2")
+library(ggplot2)
+
+#install.packages("dplyr")
+library(dplyr)
+
+
+##############
+###LyCov555###
+##############
+
+## make data
+LyCov555<-matrix(c(0.9667,0.8667,0.9289,0.82,0.87,0.9833,0.9633,
+0.2366,0.8466,0.6166,0.7533,0.5733,0.4633,0.2533,
+0.7166,0.8833,0.9166,0.88,0.8733,0.9866,0.6733,
+0.9733,0.4766,0.9233,0.6767,0.9067,0.99,0.9433,
+0.9867,0.48,1,0.69,0.8633,0.9833,0.9567),ncol=7,byrow=T)
+
+colnames(LyCov555)<-c("RH50","LH55","YH101","RH104","YL32","YL92","RL96")
+rownames(LyCov555)<-c("WT-LyCov555","BETA-LyCov555","OMICRON-LyCov555","DELTA-LyCov555","ALFA-LyCov555")
+
+LyCov555<-t(LyCov555)
+
+
+## reshape data (tidy/tall form)
+LyCov555_2 <- LyCov555 %>%
+    tbl_df() %>%
+    rownames_to_column('Residues') %>%
+    gather(Experimental_condition, value, -Residues) %>%
+    mutate(
+        Residues = rep(factor(rownames(LyCov555),levels=c("RH50","LH55","YH101","RH104","YL32","YL92","RL96")),5),
+        Experimental_condition = rep(factor(colnames(LyCov555),levels=c("ALFA-LyCov555","DELTA-LyCov555","OMICRON-LyCov555","BETA-LyCov555","WT-LyCov555")),each=7)
+    )
+
+LyCov555_2
+
+## plot data
+p<-ggplot(LyCov555_2, aes(Residues,Experimental_condition)) +
+    geom_tile(aes(fill = value)) + 
+    geom_text(aes(label = round(value, 4)),size = 10) +
+    scale_fill_gradient(low = "grey20", high = "grey80", limits=c(0,1)) +
+    ggtitle("Median affinity score of the LyCov555 residues") +
+  theme(plot.title = element_text(hjust = 0.5,size = 20),axis.text=element_text(size=13)) 
+
+p+ylab("Fab-RBD Complex")
+
+
+
+##############
+###LyCov016###
+##############
+
+## make data
+LyCov016<-matrix(round(c(0.94,0.98,0.9033,1,0.9733,0.88,0.6333,0.8333,0.9633,0.88,0.7733,0.6133,
+0.89,0.9367,0.7666,0.9733,0.9366,0.79,0.54,0.6833,0.9466,0.78,0.6066,0.5766,
+0.8033,0.9266,0.8666,0.95,0.9833,0.82,0.37,0.64,0.93,0.7166,0.44,0.3466,
+0.9633,0.9867,0.9533,0.9866,0.9833,0.8566,0.62,0.95,0.9733,0.9466,0.74,0.5433,
+0.83,0.94,0.78,0.87,0.7233,0.6766,0.6,0.8566,0.8633,0.88,0.75,0.7233
+),3),ncol=12,byrow=T)
+
+colnames(LyCov016)<-c("SH31","YH33","YH52","SH53","GH54","SH56","RH97","LH99","PH100","MH101","YL32","YL92")
+rownames(LyCov016)<-c("WT-LyCov016","BETA-LyCov016","OMICRON-LyCov016","DELTA-LyCov016","ALFA-LyCov016")
+
+LyCov016<-t(LyCov016)
+
+
+## reshape data (tidy/tall form)
+LyCov016_2 <- LyCov016 %>%
+    tbl_df() %>%
+    rownames_to_column('Residues') %>%
+    gather(Experimental_condition, value, -Residues) %>%
+    mutate(
+        Residues = rep(factor(rownames(LyCov016),levels=c("SH31","YH33","YH52","SH53","GH54","SH56","RH97","LH99","PH100","MH101","YL32","YL92")),5),
+        Experimental_condition = rep(factor(colnames(LyCov016),levels=c("ALFA-LyCov016","DELTA-LyCov016","OMICRON-LyCov016","BETA-LyCov016","WT-LyCov016")),each=12)
+    )
+
+LyCov016_2
+
+## plot data
+p<-ggplot(LyCov016_2, aes(Residues,Experimental_condition)) +
+    geom_tile(aes(fill = value)) + 
+    geom_text(aes(label = round(value, 4)),size = 7) +
+    scale_fill_gradient(low = "grey20", high = "grey80", limits=c(0,1)) +
+    ggtitle("Median affinity score of the LyCov016 residues") +
+  theme(plot.title = element_text(hjust = 0.5,size = 20),axis.text=element_text(size=13)) 
+
+p+ylab("Fab-RBD Complex")
+
+
+
+###########
+###CTP59###
+###########
+
+## make data
+CTP59<-matrix(round(c(0.86,0.98,0.96,0.9533,0.9733,0.95,0.9133,0.8966,0.89,0.9333,1,0.9633,0.85,0.9433,0.9733,0.8966,0.9666,0.7933,
+0.96,0.996,0.9933,0.9467,0.9433,0.8433,0.58,0.86,0.91,0.96,0.9433,0.86,0.2633,0.7433,0.9833,0.7266,0.95,0.6133,
+0.4267,0.77,0.8133,0.6933,0.4,0.7867,0.7733,0.7167,0.6933,0.6567,0.9967,0.85,0.47,0.8,0.83,0.7366,0.4366,0.5567,
+0.8566,1,0.96,0.9467,0.9766,0.92,0.91,0.7533,0.8433,0.96,0.9967,0.9867,0.76,0.9667,0.9533,0.8966,0.7733,0.69,
+0.86,0.9933,0.97,0.9533,0.94,0.9333,0.98,0.8433,0.88,0.9233,0.9967,0.91,0.7567,0.9333,0.9633,0.8566,0.9233,0.61
+),3),ncol=18,byrow=T)
+
+colnames(CTP59)<-c("SH32","DH54","WH55","DH56","DH57","NH58","YH60","PH101","GH102","LH104","RH105","YH106","RH109","YH111","YH113","YL33","YL50","DL51")
+rownames(CTP59)<-c("WT-CTP59","BETA-CTP59","OMICRON-CTP59","DELTA-CTP59","ALFA-CTP59")
+
+CTP59<-t(CTP59)
+
+
+## reshape data (tidy/tall form)
+CTP59_2 <- CTP59 %>%
+    tbl_df() %>%
+    rownames_to_column('Residues') %>%
+    gather(Experimental_condition, value, -Residues) %>%
+    mutate(
+        Residues = rep(factor(rownames(CTP59),levels=c("SH32","DH54","WH55","DH56","DH57","NH58","YH60","PH101","GH102","LH104","RH105","YH106","RH109","YH111","YH113","YL33","YL50","DL51")),5),
+        Experimental_condition = rep(factor(colnames(CTP59),levels=c("ALFA-CTP59","DELTA-CTP59","OMICRON-CTP59","BETA-CTP59","WT-CTP59")),each=18)
+    )
+
+CTP59_2
+
+## plot data
+p<-ggplot(CTP59_2, aes(Residues,Experimental_condition)) +
+    geom_tile(aes(fill = value)) + 
+    geom_text(aes(label = round(value, 4)),size = 6) +
+    scale_fill_gradient(low = "grey20", high = "grey80", limits=c(0,1)) +
+    ggtitle("Median affinity score of the CTP59 residues") +
+  theme(plot.title = element_text(hjust = 0.5,size = 20),axis.text=element_text(size=13)) 
+
+p+ylab("Fab-RBD Complex")
+
+
+
+#############
+###AZD1061###
+#############
+
+## make data
+AZD1061<-matrix(round(c(0.9733,0.9933,0.8933,0.8566,0.98,0.95,0.9867,0.97,0.7533,0.8833,0.9733,0.95,0.8366,0.9766,0.9966,
+0.7067,0.99,0.9266,0.86,0.8633,0.9733,0.9833,0.9466,0.65,0.9033,0.9733,0.9333,0.8533,0.9666,0.9933,
+0.93,0.9966,0.8966,0.9033,0.91,0.95,0.98,0.9766,0.9133,0.92,0.9666,0.93,0.7766,0.96,0.9333,
+0.6433,0.9966,0.8433,0.85,0.9,0.9733,0.9866,0.9533,0.7733,0.85,0.9566,0.93,0.8433,0.95,0.98,
+0.9533,0.9966,0.9566,0.8633,0.9233,0.9667,0.99,0.8933,0.6366,0.8,0.9733,0.9533,0.82,0.98,1
+),3),ncol=15,byrow=T)
+
+colnames(AZD1061)<-c("DH56","YH104","YH105","YH106","DH107","VH109","PH111","LH113","SL32","SL33","NL34","KL36","YL38","YL55","WL56")
+rownames(AZD1061)<-c("WT-AZD1061","BETA-AZD1061","OMICRON-AZD1061","DELTA-AZD1061","ALFA-AZD1061")
+
+AZD1061<-t(AZD1061)
+
+
+## reshape data (tidy/tall form)
+AZD1061_2 <- AZD1061 %>%
+    tbl_df() %>%
+    rownames_to_column('Residues') %>%
+    gather(Experimental_condition, value, -Residues) %>%
+    mutate(
+        Residues = rep(factor(rownames(AZD1061),levels=c("DH56","YH104","YH105","YH106","DH107","VH109","PH111","LH113","SL32","SL33","NL34","KL36","YL38","YL55","WL56")),5),
+        Experimental_condition = rep(factor(colnames(AZD1061),levels=c("ALFA-AZD1061","DELTA-AZD1061","OMICRON-AZD1061","BETA-AZD1061","WT-AZD1061")),each=15)
+    )
+
+AZD1061_2
+
+## plot data
+p<-ggplot(AZD1061_2, aes(Residues,Experimental_condition)) +
+    geom_tile(aes(fill = value)) + 
+    geom_text(aes(label = round(value, 4)),size = 6) +
+    scale_fill_gradient(low = "grey20", high = "grey80", limits=c(0,1)) +
+    ggtitle("Median affinity score of the AZD1061 residues") +
+  theme(plot.title = element_text(hjust = 0.5,size = 20),axis.text=element_text(size=13)) 
+
+p+ylab("Fab-RBD Complex")
+
+
+#############
+###AZD8895###
+#############
+
+## make data
+AZD8895<-matrix(round(c(0.9966,1,1,0.9,0.9,0.9966,
+0.9733,1,1,0.9733,0.89,1,
+0.85,0.9533,0.99,0.7966,0.96,0.99,
+0.69,0.9866,0.95,0.7933,0.9633,0.9166,0.9933,0.97,0.9966,0.88,0.8633,0.9933),3),ncol=6,byrow=T)
+
+colnames(AZD8895)<-c("WH50","NH107","FH110","YL33","YL92","YL98")
+rownames(AZD8895)<-c("WT-AZD8895","BETA-AZD8895","OMICRON-AZD8895","DELTA-AZD8895","ALFA-AZD8895")
+
+AZD8895<-t(AZD8895)
+
+
+## reshape data (tidy/tall form)
+AZD8895_2 <- AZD8895 %>%
+    tbl_df() %>%
+    rownames_to_column('Residues') %>%
+    gather(Experimental_condition, value, -Residues) %>%
+    mutate(
+        Residues = rep(factor(rownames(AZD8895),levels=c("WH50","NH107","FH110","YL33","YL92","YL98")),5),
+        Experimental_condition = rep(factor(colnames(AZD8895),levels=c("ALFA-AZD8895","DELTA-AZD8895","OMICRON-AZD8895","BETA-AZD8895","WT-AZD8895")),each=6)
+    )
+
+AZD8895_2
+
+## plot data
+p<-ggplot(AZD8895_2, aes(Residues,Experimental_condition)) +
+    geom_tile(aes(fill = value)) + 
+    geom_text(aes(label = round(value, 4)),size = 10) +
+    scale_fill_gradient(low = "grey20", high = "grey80", limits=c(0,1)) +
+    ggtitle("Median affinity score of the AZD8895 residues") +
+  theme(plot.title = element_text(hjust = 0.5,size = 20),axis.text=element_text(size=13)) 
+
+p+ylab("Fab-RBD Complex")
+
+
+
+################
+###SOTROVIMAB###
+################
+
+## make data
+SOTROVIMAB<-matrix(round(c(0.8366,0.5733,0.8466,0.8933,0.9633,0.83,0.98,0.9833,0.99,0.68,0.9366,0.9666,0.8933,0.9033,
+0.8366,0.4333,0.8966,0.84,0.9333,0.8266,0.98,0.95,0.9566,0.82,0.78,0.96,0.9533,0.9433,0.5766,0.65,0.6133,0.8733,0.9633,0.9433,0.9666,0.9833,0.9866,0.96,0.9633,0.9733,0.9466,1,
+0.74,0.39,0.8966,0.8033,0.9266,0.92,0.9633,0.9566,0.9366,0.6766,0.8033,0.92,0.88,0.73,0.6633,0.6033,0.69,0.7533,0.8866,0.89,0.9833,0.9833,0.9833,0.85,0.87,0.9633,0.87,0.8966
+),3),ncol=14,byrow=T)
+
+colnames(SOTROVIMAB)<-c("SH31","YH54","YH100","WH105","FH106","EH108","SH109","LH110","IH111","SL30","SL31","TL32","SL33","HL92")
+rownames(SOTROVIMAB)<-c("WT-SOTROVIMAB","BETA-SOTROVIMAB","OMICRON-SOTROVIMAB","DELTA-SOTROVIMAB","ALFA-SOTROVIMAB")
+
+SOTROVIMAB<-t(SOTROVIMAB)
+
+
+## reshape data (tidy/tall form)
+SOTROVIMAB_2 <- SOTROVIMAB %>%
+    tbl_df() %>%
+    rownames_to_column('Residues') %>%
+    gather(Experimental_condition, value, -Residues) %>%
+    mutate(
+        Residues = rep(factor(rownames(SOTROVIMAB),levels=c("SH31","YH54","YH100","WH105","FH106","EH108","SH109","LH110","IH111","SL30","SL31","TL32","SL33","HL92")),5),
+        Experimental_condition = rep(factor(colnames(SOTROVIMAB),levels=c("ALFA-SOTROVIMAB","DELTA-SOTROVIMAB","OMICRON-SOTROVIMAB","BETA-SOTROVIMAB","WT-SOTROVIMAB")),each=14)
+    )
+
+SOTROVIMAB_2
+
+## plot data
+p<-ggplot(SOTROVIMAB_2, aes(Residues,Experimental_condition)) +
+    geom_tile(aes(fill = value)) + 
+    geom_text(aes(label = round(value, 4)),size = 6) +
+    scale_fill_gradient(low = "grey20", high = "grey80", limits=c(0,1)) +
+    ggtitle("Median affinity score of the SOTROVIMAB residues") +
+  theme(plot.title = element_text(hjust = 0.5,size = 20),axis.text=element_text(size=13)) 
+
+p+ylab("Fab-RBD Complex")
+
+
+
+##########
+###EY6A###
+##########
+
+## make data
+EY6A<-matrix(round(c(0.9833,0.9966,0.9266,0.94,0.99,0.8766,0.8966,0.83,0.98,0.9833,0.6,0.9966,0.95,0.9766,0.9533,
+0.9066,0.9266,0.86,0.92,0.98,0.87,0.7066,0.7333,0.9066,0.9533,0.77,0.9766,0.96,0.97,0.9633,
+0.9166,0.9666,0.8766,0.86,0.9566,0.7766,0.89,0.8433,0.7966,0.9566,0.6333,0.98,0.95,0.9733,0.94,
+0.67,0.7366,0.8033,0.7566,0.9033,0.88,0.92,0.8133,0.9533,0.9566,0.5933,0.99,0.95,0.9133,0.89,
+0.8966,0.91,0.9,0.9633,0.9766,0.9666,0.9666,0.84,0.9733,0.9366,0.81,0.9633,0.9566,0.94,0.96
+),3),ncol=15,byrow=T)
+
+colnames(EY6A)<-c("DH33","SH52","NH57","YH59","DH99","GH101","LH103","WH104","VH105","YH106","QL27","YL92","SL93","TL94","LL95")
+rownames(EY6A)<-c("WT-EY6A","BETA-EY6A","OMICRON-EY6A","DELTA-EY6A","ALFA-EY6A")
+
+EY6A<-t(EY6A)
+
+
+## reshape data (tidy/tall form)
+EY6A_2 <- EY6A %>%
+    tbl_df() %>%
+    rownames_to_column('Residues') %>%
+    gather(Experimental_condition, value, -Residues) %>%
+    mutate(
+        Residues = rep(factor(rownames(EY6A),levels=c("DH33","SH52","NH57","YH59","DH99","GH101","LH103","WH104","VH105","YH106","QL27","YL92","SL93","TL94","LL95")),5),
+        Experimental_condition = rep(factor(colnames(EY6A),levels=c("ALFA-EY6A","DELTA-EY6A","OMICRON-EY6A","BETA-EY6A","WT-EY6A")),each=15)
+    )
+
+EY6A_2
+
+## plot data
+p<-ggplot(EY6A_2, aes(Residues,Experimental_condition)) +
+    geom_tile(aes(fill = value)) + 
+    geom_text(aes(label = round(value, 4)),size = 6) +
+    scale_fill_gradient(low = "grey20", high = "grey80", limits=c(0,1)) +
+    ggtitle("Median affinity score of the EY6A residues") +
+  theme(plot.title = element_text(hjust = 0.5,size = 20),axis.text=element_text(size=13)) 
+
+p+ylab("Fab-RBD Complex")
 
 
